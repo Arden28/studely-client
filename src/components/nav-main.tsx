@@ -1,3 +1,4 @@
+import * as React from "react"
 import { type LucideIcon } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -9,12 +10,15 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-type NavItem = {
+// Keep roles in one place so both sidebar and other components can reuse the type
+export type Role = "SuperAdmin" | "CollegeAdmin" | "Evaluator" | "Student"
+
+export type NavItem = {
   title: string
   url: string
   icon?: LucideIcon
   isActive?: boolean
-  // items?: { title: string; url: string }[] // no longer used (flat nav)
+  // roles?: Role[]   // handled/filtered in AppSidebar
 }
 
 export function NavMain({ items }: { items: NavItem[] }) {
@@ -22,26 +26,33 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
   return (
     <SidebarGroup>
+      {/* Optional label:
+      <SidebarGroupLabel>Main</SidebarGroupLabel>
+      */}
       <SidebarMenu>
         {items.map((item) => {
           const Icon = item.icon
-          // Prefer provided isActive, else infer from pathname
           const active =
             item.isActive ??
             (item.url === "/"
               ? pathname === "/"
-              : pathname === item.url || pathname.startsWith(item.url + "/"))
+              : pathname === item.url ||
+                pathname.startsWith(item.url + "/"))
 
-        return (
-          <SidebarMenuItem key={item.title}>
-            <SidebarMenuButton asChild tooltip={item.title} data-active={active ? "true" : undefined}>
-              <Link to={item.url} aria-current={active ? "page" : undefined}>
-                {Icon ? <Icon /> : null}
-                <span>{item.title}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )
+          return (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                data-active={active ? "true" : undefined}
+              >
+                <Link to={item.url} aria-current={active ? "page" : undefined}>
+                  {Icon ? <Icon /> : null}
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )
         })}
       </SidebarMenu>
     </SidebarGroup>

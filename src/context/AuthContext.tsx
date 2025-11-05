@@ -10,6 +10,7 @@ export type AppUser = {
   phone?: string
   role?: string
   tenant_id?: number | null
+  tenant_name?: string | null
   roles?: string[]
 }
 

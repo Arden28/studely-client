@@ -146,7 +146,7 @@ const auth = {
   ): Promise<TUser | null> {
     const res = await apiService.get<any>(path)
     const data = res.data
-    // console.info("User :", res)
+    console.info("User :", res)
     let user: TUser | null = null
     if (data && typeof data === "object") {
       if ("user" in data) {
