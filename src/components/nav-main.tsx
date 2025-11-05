@@ -22,7 +22,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           const Icon = item.icon

@@ -4,11 +4,8 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -38,18 +35,21 @@ function getInitials(name?: string) {
   const parts = name.trim().split(/\s+/)
   const first = parts[0]?.[0] ?? ""
   const second = parts[1]?.[0] ?? ""
-  return (first + second || first || "?").toUpperCase()
+  const val = (first + second || first || "?").toUpperCase()
+  return val.length ? val : "??"
 }
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { user, logout, status } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const displayName = user?.name ?? "—"
-  const displayEmail = user?.email ?? ""
-  const avatarSrc = (user as any)?.avatar || "" // adapt if you store avatar URL elsewhere
-  const initials = getInitials(displayName)
+  const displayName = (user as any)?.name || (user as any)?.fullName || (user as any)?.username || ""
+  const displayEmail = (user as any)?.email || ""
+  const avatarSrc = (user as any)?.avatar || (user as any)?.photoURL || ""
+  const initials = getInitials(displayName || displayEmail || "User")
+
+  const hasAvatar = typeof avatarSrc === "string" && avatarSrc.trim().length > 0
 
   return (
     <SidebarMenu>
@@ -61,13 +61,25 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={avatarSrc} alt={displayName} />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                {hasAvatar ? (
+                  <AvatarImage src={avatarSrc} alt={displayName || "User avatar"} />
+                ) : null}
+                {/* Force-show fallback immediately */}
+                <AvatarFallback className="rounded-lg" delayMs={0}>
+                  {initials}
+                </AvatarFallback>
               </Avatar>
+
+              {/* These can be hidden by collapsed sidebar styles; add explicit readable colors */}
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{displayName}</span>
-                <span className="truncate text-xs">{displayEmail}</span>
+                <span className="truncate font-medium text-foreground">
+                  {displayName || "—"}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {displayEmail}
+                </span>
               </div>
+
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -81,16 +93,23 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={avatarSrc} alt={displayName} />
-                  <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  {hasAvatar ? (
+                    <AvatarImage src={avatarSrc} alt={displayName || "User avatar"} />
+                  ) : null}
+                  <AvatarFallback className="rounded-lg" delayMs={0}>
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{displayName}</span>
-                  <span className="truncate text-xs">{displayEmail}</span>
+                  <span className="truncate font-medium text-foreground">
+                    {displayName || "—"}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">
+                    {displayEmail}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>
-
 
             <DropdownMenuSeparator />
 
@@ -103,9 +122,7 @@ export function NavUser() {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem
-              onClick={() => logout()}
-            >
+            <DropdownMenuItem onClick={() => logout()}>
               <LogOut />
               Log out
             </DropdownMenuItem>

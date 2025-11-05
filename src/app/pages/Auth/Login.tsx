@@ -69,11 +69,11 @@ export default function Login({ className, ...props }: Props) {
               )}
               
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="email">Email/Reg No</FieldLabel>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="m@example.com"
+                  type="text"
+                  placeholder=""
                   required
                   autoComplete="email"
                   value={email}

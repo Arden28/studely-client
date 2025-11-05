@@ -18,6 +18,7 @@ const ReportsOverview = React.lazy(() => import("@/app/pages/ReportsOverview"));
 const Account = React.lazy(() => import("@/app/pages/Account"));
 const Login = React.lazy(() => import("@/app/pages/Auth/Login"));
 const NotFound = React.lazy(() => import("@/app/pages/NotFound"));
+const AssessmentEngine = React.lazy(() => import("@/app/pages/AssessmentEngine"));
 
 function withSuspense(node: React.ReactNode) {
   return <React.Suspense fallback={null}>{node}</React.Suspense>;
@@ -58,7 +59,7 @@ export const router = createBrowserRouter([
           {
             element: <RequireAuth />,
             children: [
-              // No role-based redirect; pick a neutral default page:
+              // Neutral default page
               { index: true, element: withSuspense(<Dashboard />) },
 
               // Common
@@ -66,7 +67,7 @@ export const router = createBrowserRouter([
               { path: "evaluate", element: withSuspense(<Evaluate />) },
               { path: "account", element: withSuspense(<Account />) },
 
-              // Admin pages are now just routes; we'll HIDE their links in the sidebar.
+              // Admin (links hidden by role in sidebar)
               { path: "dashboard", element: withSuspense(<Dashboard />) },
               { path: "students", element: withSuspense(<Students />) },
               { path: "modules", element: withSuspense(<Modules />) },
@@ -84,7 +85,8 @@ export const router = createBrowserRouter([
           {
             element: <RequireAuth />,
             children: [
-              { path: "assess/:assessmentId", element: withSuspense(<Assessments />) },
+              // Point the runner route to the engine
+              { path: "assess/:assessmentId", element: withSuspense(<AssessmentEngine />) },
             ],
           },
         ],
