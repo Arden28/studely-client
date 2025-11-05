@@ -26,11 +26,14 @@ import {
 import { cn } from "@/lib/utils" // if you don't have cn, remove cn() usages
 
 /** ----------------------- Schema ----------------------- */
+// define the enum options as a readonly tuple
+const ASSESSMENT_TYPES = ["online", "offline"] as const
+
 const schema = z
   .object({
     id: z.number().optional(),
     title: z.string().min(3, "Title is required"),
-    type: z.enum(["online", "offline"], { required_error: "Type is required" }),
+    type: z.enum(ASSESSMENT_TYPES, { message: "Type is required" }),
     category: z.string().min(1, "Category is required"),
     module: z.string().min(1, "Module is required"),
     cohort: z.string().optional(),

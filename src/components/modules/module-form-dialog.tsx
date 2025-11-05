@@ -13,7 +13,7 @@ const schema = z.object({
   id: z.number().optional(),
   code: z.string().min(2, "Code is required"),
   title: z.string().min(3, "Title is required"),
-  credits: z.coerce.number().int().min(0).max(60),
+  credits: z.number().int().min(0).max(60),
   status: z.enum(["Active", "Archived"]),
   instructor: z.string().min(1, "Instructor is required"),
   cohort: z.string().optional(),
@@ -73,7 +73,12 @@ export function ModuleFormDialog({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="credits">Credits</Label>
-              <Input id="credits" type="number" min={0} {...form.register("credits")} />
+              <Input
+                id="credits"
+                type="number"
+                min={0}
+                {...form.register("credits", { valueAsNumber: true })}
+              />
               {form.formState.errors.credits && <p className="text-xs text-red-600">{form.formState.errors.credits.message}</p>}
             </div>
           </div>

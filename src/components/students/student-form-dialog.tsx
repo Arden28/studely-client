@@ -31,25 +31,28 @@ const schema = z.object({
   cohort: z.string().optional(),
   branch: z.string().optional(),
 
-  /** Accept object or JSON string for meta */
-  meta: z
-    .union([z.record(z.any()), z.string().trim().length(0), z.string()])
+  // keep meta as an object type (not bound directly to textarea)
+  meta: z.record(z.string(), z.unknown()).optional(),
+
+  // bind textarea to a plain string
+  meta_text: z
+    .string()
     .optional()
     .superRefine((val, ctx) => {
-      if (typeof val === "string" && val.trim().length > 0) {
-        try {
-          const parsed = JSON.parse(val)
-          if (!parsed || typeof parsed !== "object") {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Meta must be a JSON object" })
-          }
-        } catch {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid JSON" })
+      const t = (val ?? "").trim()
+      if (!t) return
+      try {
+        const parsed = JSON.parse(t)
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Meta must be a JSON object" })
         }
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid JSON" })
       }
     }),
 })
-
 export type StudentFormValues = z.infer<typeof schema>
+
 
 export function StudentFormDialog({
   open,
@@ -64,6 +67,7 @@ export function StudentFormDialog({
   onSubmit: (values: StudentFormValues) => Promise<void> | void
   submitting?: boolean
 }) {
+
   const form = useForm<StudentFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -73,41 +77,45 @@ export function StudentFormDialog({
       reg_no: "",
       cohort: "",
       branch: "",
-      meta: "",
+      meta: undefined,
+      meta_text: "",
       ...(initial ?? {}),
     },
   })
 
   React.useEffect(() => {
     if (initial) {
-      const metaField =
-        typeof initial.meta === "object" && initial.meta != null
-          ? JSON.stringify(initial.meta, null, 2)
-          : (initial.meta as any) ?? ""
-      form.reset({ ...initial, meta: metaField })
+      form.reset({
+        ...initial,
+        meta_text:
+          initial.meta && typeof initial.meta === "object"
+            ? JSON.stringify(initial.meta, null, 2)
+            : "",
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial])
+
 
   const isEdit = Boolean(initial?.id)
 
   const handleSubmit = form.handleSubmit(async (values) => {
     let meta: Record<string, unknown> | undefined
-    if (typeof values.meta === "string") {
-      const t = values.meta.trim()
-      if (t) {
-        try {
-          const parsed = JSON.parse(t)
-          if (parsed && typeof parsed === "object") meta = parsed as Record<string, unknown>
-        } catch {
-          /* schema already shows error; guard anyway */
-        }
+
+    const t = (values.meta_text ?? "").trim()
+    if (t) {
+      try {
+        meta = JSON.parse(t) as Record<string, unknown>
+      } catch {
+        // schema already reports error; guard anyway
       }
-    } else if (values.meta && typeof values.meta === "object") {
-      meta = values.meta as Record<string, unknown>
     }
 
-    await onSubmit({ ...values, meta })
+    // Build payload without meta_text
+    const { meta_text, ...rest } = values
+    const payload = { ...rest, meta }
+
+    await onSubmit(payload as StudentFormValues) // or change prop type to accept the transformed shape
   })
 
   return (
@@ -212,7 +220,7 @@ export function StudentFormDialog({
             {/* Row 4: meta full width */}
             <FormField
               control={form.control}
-              name="meta"
+              name="meta_text"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Meta (JSON, optional)</FormLabel>
@@ -221,7 +229,7 @@ export function StudentFormDialog({
                       rows={5}
                       placeholder='e.g. { "guardian": "Jane Doe", "emergencyPhone": "+254..." }'
                       className="font-mono"
-                      {...field}
+                      {...field}  
                     />
                   </FormControl>
                   <FormMessage />
