@@ -1,0 +1,1 @@
+export default function ReportsOverview(){ return <h1 className="text-2xl font-semibold">Reports Overview</h1>; }
