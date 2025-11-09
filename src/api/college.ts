@@ -94,7 +94,7 @@ async function list(params?: {
 
 async function create(payload: UICollegeCreate) {
   const body = {
-    code: payload.code.trim().toUpperCase(),
+    code: payload.code!.trim().toUpperCase(),
     name: payload.name.trim(),
     location: payload.location?.trim() || null,
     description: payload.description?.trim() || null,
