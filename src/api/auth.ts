@@ -31,7 +31,7 @@ const storage = {
 }
 
 export type Credentials = {
-  email?: string
+  email?: string // you can also support { login?: string } later if needed
   password: string
   device?: string
 }
@@ -56,6 +56,26 @@ type TwoFAPayload = { enabled: boolean }
 
 type UploadAvatarResult = { url?: string }
 
+/* ---------------- Registration types ---------------- */
+export type RegisterInitBody = {
+  full_name: string
+  institution_name: string
+  university_name: string
+  mobile: string
+  email: string
+  gender: string
+  dob: string // yyyy-mm-dd
+  admission_year: number
+  current_semester: number
+  reg_no: string
+  password: string // must meet policy; server revalidates
+}
+
+export type RegisterCompleteBody = {
+  email: string
+  otp: string
+}
+
 // Optional: narrow ApiError at call sites
 export function isApiError(e: unknown): e is ApiError {
   return e instanceof Error && (e as any).name === "ApiError"
@@ -71,6 +91,14 @@ async function putOrPatch<T = unknown, B = unknown>(url: string, body: B): Promi
     }
     throw e
   }
+}
+
+function applyAuthResponse<TUser = unknown>(res: ApiResult<LoginResponse<TUser>>) {
+  const token = res.data.token ?? res.data.access_token
+  if (!token) throw new ApiError(res.status, "No auth token returned by API.")
+  apiService.setToken(token)
+  if (res.data.user) auth.setUser<TUser>(res.data.user)
+  return res
 }
 
 const auth = {
@@ -108,13 +136,7 @@ const auth = {
     path: "/v1/login" | "/login" = "/v1/login"
   ): Promise<ApiResult<LoginResponse<TUser>>> {
     const res = await apiService.post<LoginResponse<TUser>, Credentials>(path, credentials)
-    const token = res.data.token ?? res.data.access_token
-    if (!token) {
-      throw new ApiError(res.status, "No auth token returned by API.")
-    }
-    apiService.setToken(token) // Bearer token (apiService must attach Authorization header)
-    if (res.data.user) auth.setUser<TUser>(res.data.user)
-    return res
+    return applyAuthResponse<TUser>(res)
   },
 
   async logout(path: "/v1/logout" | "/logout" = "/v1/logout") {
@@ -146,7 +168,6 @@ const auth = {
   ): Promise<TUser | null> {
     const res = await apiService.get<any>(path)
     const data = res.data
-    console.info("User :", res)
     let user: TUser | null = null
     if (data && typeof data === "object") {
       if ("user" in data) {
@@ -157,6 +178,39 @@ const auth = {
     }
     auth.setUser(user)
     return user
+  },
+
+  /* --------------------- registration handlers ------------------ */
+
+  /**
+   * Initiate registration & send OTP to the given mobile number.
+   * Recalling this acts as "Resend OTP" (server re-sends and refreshes TTL).
+   */
+  async registerInit(
+    body: RegisterInitBody,
+    path: "/v1/register/init" = "/v1/register/init"
+  ) {
+    return await apiService.post<{ message: string }, RegisterInitBody>(path, body)
+  },
+
+  /**
+   * Complete registration by verifying OTP. On success, API returns token+user.
+   * We store token and cache user (same as login).
+   */
+  async registerComplete<TUser = unknown>(
+    body: RegisterCompleteBody,
+    path: "/v1/register/complete" = "/v1/register/complete"
+  ): Promise<ApiResult<LoginResponse<TUser>>> {
+    const res = await apiService.post<LoginResponse<TUser>, RegisterCompleteBody>(path, body)
+    return applyAuthResponse<TUser>(res)
+  },
+
+  /** Optional alias if you want a semantic call site for re-sending */
+  async resendOtp(
+    body: RegisterInitBody,
+    path: "/v1/register/init" = "/v1/register/init"
+  ) {
+    return await apiService.post<{ message: string }, RegisterInitBody>(path, body)
   },
 
   /* ---------------------- account handlers ---------------------- */

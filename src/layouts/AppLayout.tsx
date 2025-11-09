@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { Outlet, Link, useLocation } from "react-router-dom"
 import { Separator } from "@/components/ui/separator"
@@ -20,9 +22,8 @@ function useBreadcrumbs() {
   const { pathname } = useLocation()
   const segments = pathname.split("/").filter(Boolean)
 
-  // Known route label map (makes crumbs "real"/friendly)
+  // Known route label map
   const routeLabelMap: Record<string, string> = {
-    overview: "Dashboard",
     students: "Students",
     modules: "Modules",
     assessments: "Assessments",
@@ -35,16 +36,19 @@ function useBreadcrumbs() {
     routeLabelMap[s] ??
     s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 
-  const items = segments.map((seg, idx) => {
-    const href = "/" + segments.slice(0, idx + 1).join("/")
-    return { href, label: prettify(seg), isLast: idx === segments.length - 1 }
-  })
+  const items = segments.map((seg, idx) => ({
+    href: "/" + segments.slice(0, idx + 1).join("/"),
+    label: prettify(seg),
+    isLast: idx === segments.length - 1,
+  }))
 
   return { items, hasItems: items.length > 0 }
 }
 
 export default function AppLayout() {
   const { items, hasItems } = useBreadcrumbs()
+  const { pathname } = useLocation()
+  const isDashboard = pathname === "/"
 
   return (
     <SidebarProvider>
@@ -57,14 +61,17 @@ export default function AppLayout() {
 
             <Breadcrumb>
               <BreadcrumbList>
-                {/* Home crumb (hidden on small, matches shadcn block) */}
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink asChild>
-                    <Link to="/">Home</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-
-                {hasItems && <BreadcrumbSeparator className="hidden md:block" />}
+                {/* Dashboard link only if not on root */}
+                {!isDashboard && (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink asChild>
+                        <Link to="/">Dashboard</Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    {hasItems && <BreadcrumbSeparator className="hidden md:block" />}
+                  </>
+                )}
 
                 {hasItems ? (
                   items.map((it, i) =>
@@ -84,9 +91,11 @@ export default function AppLayout() {
                     )
                   )
                 ) : (
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Dashboard</BreadcrumbPage>
-                  </BreadcrumbItem>
+                  isDashboard && (
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  )
                 )}
               </BreadcrumbList>
             </Breadcrumb>

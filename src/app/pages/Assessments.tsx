@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import apiService from "@/api/apiService"
 import { useNavigate } from "react-router-dom"
+import useAuth from "@/hooks/useAuth"
 
 type Query = {
   search?: string
@@ -23,6 +24,7 @@ type ModuleOpt = { id: number; code?: string; title?: string }
 export default function Assessments() {
   const nav = useNavigate()
   const [loading, setLoading] = React.useState(true)
+  const { user } = useAuth()
   const [rows, setRows] = React.useState<UIAssessment[]>([])
   const [total, setTotal] = React.useState(0)
   const [modules, setModules] = React.useState<ModuleOpt[]>([])
@@ -175,7 +177,7 @@ export default function Assessments() {
   }
 
   const columns = React.useMemo(
-    () => buildAssessmentColumns(openEditByRow, removeAssessment, launchAssessment),
+    () => buildAssessmentColumns(openEditByRow, removeAssessment, launchAssessment,  user ?? undefined),
     [] // eslint-disable-line
   )
 
@@ -226,26 +228,6 @@ export default function Assessments() {
             if (e.key === "Enter") fetchAssessments()
           }}
         />
-
-        <Select
-          value={query.module_id || "all"}
-          onValueChange={(v) =>
-            setQuery((q) => ({ ...q, module_id: v === "all" ? "" : v }))
-          }
-        >
-          <SelectTrigger className="w-56">
-            <SelectValue placeholder="Module" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All modules</SelectItem>
-            {modules.map((m) => (
-              <SelectItem key={m.id} value={String(m.id)}>
-                {m.code ? `${m.code} — ` : ""}
-                {m.title ?? `Module #${m.id}`}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
 
         <Select
           value={query.type || "all"}

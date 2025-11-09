@@ -12,6 +12,7 @@ export type AssessmentDto = {
   per_student_time_limit_min?: number | null
   max_attempts?: number | null
   is_active: boolean
+  modules_count?: number
   questions_count?: number
   attempts_count?: number
   open_at?: string | null // ISO
@@ -31,6 +32,7 @@ export type UIAssessment = {
   max_attempts?: number | null
   is_active: boolean
   status: "scheduled" | "active" | "closed"
+  modules_count?: number
   questions_count?: number
   attempts_count?: number
   open_at?: string | null
@@ -104,6 +106,7 @@ export function toUIAssessment(a: AssessmentDto): UIAssessment {
     max_attempts: a.max_attempts ?? null,
     is_active: a.is_active,
     status: computeStatus(a.is_active, a.open_at, a.close_at),
+    modules_count: a.modules_count,
     questions_count: a.questions_count,
     attempts_count: a.attempts_count,
     open_at: a.open_at ?? null,

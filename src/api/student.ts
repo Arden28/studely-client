@@ -5,14 +5,23 @@ import api, { buildQuery } from "@/api/apiService"
 
 export type StudentDto = {
   id: number
-  name: string,
-  email: string,
-  phone?: string | null,
+  name: string
+  email: string
+  phone?: string | null
   tenant_id: number
   user_id: number | null
   reg_no: string
   branch?: string | null
   cohort?: string | null
+  // Optional first-class fields (if your backend exposes them directly)
+  gov_full_name?: string | null
+  institution_name?: string | null
+  university_name?: string | null
+  gender?: string | null
+  dob?: string | null // ISO date string
+  admission_year?: number | string | null
+  current_semester?: number | string | null
+
   meta?: Record<string, unknown> | null
   user?: { id: number; name: string; email?: string | null; phone?: string | null } | null
   created_at?: string | null
@@ -33,14 +42,27 @@ export type PaginatedDto<T> = {
 
 export type UIStudent = {
   id: number
+  // core
   regNo: string
   branch?: string
   cohort?: string
   meta?: Record<string, unknown>
+
+  // user-linked
   userId?: number | null
-  userName?: string | null
+  userName?: string | null // account name (could be same as gov name)
   userEmail?: string | null
   userPhone?: string | null
+
+  // new fields for the page
+  govFullName?: string | null
+  institutionName?: string | null
+  universityName?: string | null
+  gender?: string | null
+  dob?: string | null
+  admissionYear?: number | string | null
+  currentSemester?: number | string | null
+
   createdAt?: string
   updatedAt?: string
 }
@@ -59,19 +81,29 @@ export type UIStudentCreate = {
 
 export type UIStudentUpdate = Partial<UIStudentCreate>
 
-/* ------------------------------ Transforms -------------------------------- */
 
 export function toUIStudent(s: StudentDto): UIStudent {
+
   return {
     id: s.id,
     regNo: s.reg_no,
     branch: s.branch ?? undefined,
     cohort: s.cohort ?? undefined,
     meta: s.meta ?? undefined,
+
     userId: s.user_id ?? null,
-    userName: s.name ?? null,
-    userEmail: s.email ?? null,
-    userPhone: s.phone ?? null,
+    userName: s.name ?? s.user?.name ?? null,
+    userEmail: s.email ?? s.user?.email ?? null,
+    userPhone: s.phone ?? s.user?.phone ?? null,
+
+    govFullName: s.name,
+    institutionName: s.institution_name ?? null,
+    universityName: s.university_name ?? null,
+    gender: s.gender ?? null,
+    dob: s.dob ?? null,
+    admissionYear: s.admission_year ?? null,
+    currentSemester: s.current_semester ?? null,
+
     createdAt: s.created_at ?? undefined,
     updatedAt: s.updated_at ?? undefined,
   }
@@ -86,7 +118,16 @@ function normalizeListParams(params?: Record<string, unknown>) {
 
 /* -------------------------------- Client ---------------------------------- */
 
-async function list(params?: { search?: string; cohort?: string; branch?: string; page?: number; per_page?: number; with?: ("user")[] }) {
+async function list(params?: {
+  search?: string
+  cohort?: string
+  branch?: string
+  university?: string
+  institution?: string
+  page?: number
+  per_page?: number
+  with?: ("user")[]
+}) {
   const qs = buildQuery(normalizeListParams(params))
   const res = await api.get<PaginatedDto<StudentDto>>(`/v1/students${qs}`)
   return {
@@ -108,6 +149,7 @@ async function list(params?: { search?: string; cohort?: string; branch?: string
 /**
  * Create Student + (optionally) User in one call by sending a nested "user" object.
  * Requires backend to accept { reg_no, cohort, branch, meta, user: { name, email, phone? } }.
+ * (New display fields are still sourced from meta or future first-class fields.)
  */
 async function createWithUser(payload: UIStudentCreate) {
   const body: Record<string, unknown> = {

@@ -1,27 +1,40 @@
+"use client"
+
 import * as React from "react"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+
+import assessmentsApi, {  type UIAssessment } from "@/api/assessment"
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+
+/** ----------------------- Schema ----------------------- */
+const statusEnum = ["Active", "Archived"] as const
 
 const schema = z.object({
   id: z.number().optional(),
   code: z.string().min(2, "Code is required"),
   title: z.string().min(3, "Title is required"),
   credits: z.number().int().min(0).max(60),
-  status: z.enum(["Active", "Archived"]),
-  instructor: z.string().min(1, "Instructor is required"),
-  cohort: z.string().optional(),
-  description: z.string().optional(),
+  status: z.enum(statusEnum),
+  assessment_id: z.number().int().positive({ message: "Select an assessment" }),
 })
 
 export type ModuleFormValues = z.infer<typeof schema>
 
+/** -------------------- Main Dialog -------------------- */
 export function ModuleFormDialog({
   open,
   onOpenChange,
@@ -35,6 +48,27 @@ export function ModuleFormDialog({
   onSubmit: (values: ModuleFormValues) => Promise<void> | void
   submitting?: boolean
 }) {
+  const [assessments, setAssessments] = React.useState<UIAssessment[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  // Fetch assessments on mount
+  React.useEffect(() => {
+    let cancelled = false
+    async function fetchAssessments() {
+      try {
+        setLoading(true)
+        const res = await assessmentsApi.list({ status: "active" })
+        if (!cancelled) setAssessments(res.data.rows)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchAssessments()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const form = useForm<ModuleFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -42,12 +76,9 @@ export function ModuleFormDialog({
       title: "",
       credits: 3,
       status: "Active",
-      instructor: "",
-      cohort: "",
-      description: "",
+      assessment_id: undefined as unknown as number,
       ...initial,
     },
-    values: initial ? { ...(initial as any) } : undefined,
   })
 
   React.useEffect(() => {
@@ -64,73 +95,123 @@ export function ModuleFormDialog({
           <DialogTitle>{isEdit ? "Edit Module" : "Create Module"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={submit} className="space-y-4">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="code">Code</Label>
-              <Input id="code" {...form.register("code")} />
-              {form.formState.errors.code && <p className="text-xs text-red-600">{form.formState.errors.code.message}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="credits">Credits</Label>
-              <Input
-                id="credits"
-                type="number"
-                min={0}
-                {...form.register("credits", { valueAsNumber: true })}
+        <Form {...form}>
+          <form onSubmit={submit} className="space-y-6">
+            {/* Row 1: Code & Credits */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control as any}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. CS101" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {form.formState.errors.credits && <p className="text-xs text-red-600">{form.formState.errors.credits.message}</p>}
+              <FormField
+                control={form.control as any}
+                name="credits"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Credits</FormLabel>
+                    <FormControl>
+                      <Input type="number" min={0} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input id="title" {...form.register("title")} />
-            {form.formState.errors.title && <p className="text-xs text-red-600">{form.formState.errors.title.message}</p>}
-          </div>
+            {/* Row 2: Title & Status */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control as any}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Introduction to CS" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control as any}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusEnum.map((s) => (
+                            <SelectItem key={s} value={s}>{s}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>Status</Label>
-              <Select
-                value={form.watch("status")}
-                onValueChange={(v: "Active" | "Archived") => form.setValue("status", v)}
+            {/* Row 3: Assessment */}
+            <FormField
+              control={form.control as any}
+              name="assessment_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assessment</FormLabel>
+                  <FormControl>
+                    <Select
+                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(v) => field.onChange(Number(v))}
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loading ? "Loading..." : "Select assessment"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assessments.map((a) => (
+                          <SelectItem key={a.id} value={String(a.id)}>
+                            {a.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Actions */}
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={submitting}
               >
-                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Archived">Archived</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.formState.errors.status && <p className="text-xs text-red-600">{form.formState.errors.status.message}</p>}
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? "Saving…" : isEdit ? "Save changes" : "Create"}
+              </Button>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="instructor">Instructor</Label>
-              <Input id="instructor" placeholder="e.g. Dr. Jane Doe" {...form.register("instructor")} />
-              {form.formState.errors.instructor && <p className="text-xs text-red-600">{form.formState.errors.instructor.message}</p>}
-            </div>
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="cohort">Cohort</Label>
-              <Input id="cohort" placeholder="2025-A" {...form.register("cohort")} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea id="description" rows={3} placeholder="Optional short description…" {...form.register("description")} />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : isEdit ? "Save changes" : "Create"}
-            </Button>
-          </div>
-        </form>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

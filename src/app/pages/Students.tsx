@@ -7,18 +7,29 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import studentsApi, { type UIStudent } from "@/api/student"
+import useAuth from "@/hooks/useAuth"
 
 type Query = {
   search?: string
   cohort?: string
   branch?: string
+  university?: string
+  institution?: string
 }
 
 export default function Students() {
   const [loading, setLoading] = React.useState(true)
+  
+  const { user } = useAuth()
   const [rows, setRows] = React.useState<UIStudent[]>([])
   const [total, setTotal] = React.useState(0)
-  const [query, setQuery] = React.useState<Query>({ search: "", cohort: "", branch: "" })
+  const [query, setQuery] = React.useState<Query>({
+    search: "",
+    cohort: "",
+    branch: "",
+    university: "",
+    institution: "",
+  })
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = React.useState(false)
@@ -36,7 +47,10 @@ export default function Students() {
         page: 1,
         per_page: 20,
         with: ["user"],
-      })
+        // If your backend supports these filters, pass them along:
+        university: query.university,
+        institution: query.institution,
+      } as any)
       setRows(res.data.rows)
       setTotal(res.data.meta.total)
     } catch (e: any) {
@@ -133,7 +147,7 @@ export default function Students() {
   }
 
   const columns = React.useMemo(
-    () => buildStudentColumns(openEdit, removeStudent),
+    () => buildStudentColumns(openEdit, removeStudent, user ?? undefined),
     [] // eslint-disable-line
   )
 
@@ -161,6 +175,18 @@ export default function Students() {
       value: query.branch,
       onClear: () => setQuery((q) => ({ ...q, branch: "" })),
     },
+    {
+      key: "university",
+      label: `University: ${query.university}`,
+      value: query.university,
+      onClear: () => setQuery((q) => ({ ...q, university: "" })),
+    },
+    {
+      key: "institution",
+      label: `Institution: ${query.institution}`,
+      value: query.institution,
+      onClear: () => setQuery((q) => ({ ...q, institution: "" })),
+    },
   ]
 
   return (
@@ -185,23 +211,17 @@ export default function Students() {
         />
 
         <Input
-          placeholder="Cohort (e.g., 2025-A)"
-          className="w-40"
-          value={query.cohort}
-          onChange={(e) => setQuery((q) => ({ ...q, cohort: e.target.value }))}
+          placeholder="University"
+          className="w-44"
+          value={query.university}
+          onChange={(e) => setQuery((q) => ({ ...q, university: e.target.value }))}
         />
 
-        <Input
-          placeholder="Branch (e.g., Parklands)"
-          className="w-40"
-          value={query.branch}
-          onChange={(e) => setQuery((q) => ({ ...q, branch: e.target.value }))}
-        />
 
         <Button variant="outline" onClick={fetchStudents}>Apply</Button>
         <Button
           variant="ghost"
-          onClick={() => setQuery({ search: "", cohort: "", branch: "" })}
+          onClick={() => setQuery({ search: "", cohort: "", branch: "", university: "", institution: "" })}
         >
           Reset
         </Button>
@@ -217,8 +237,7 @@ export default function Students() {
         globalFilterPlaceholder="Quick search…"
         extraFilters={extraFilters}
         groupableColumns={[
-          { id: "cohort", label: "Cohort" },
-          { id: "branch", label: "Branch" },
+          { id: "universityName", label: "University" },
         ]}
       />
 

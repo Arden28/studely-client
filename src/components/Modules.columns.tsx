@@ -1,35 +1,34 @@
 import type { ColumnDef } from "@tanstack/react-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import type { UIModule } from "@/api/module"
 
-export type ModuleRow = {
-  id: number
-  code: string
-  title: string
-  credits: number
-  status: "Active" | "Archived"
-  instructor: string
-  cohort?: string
-  assessmentsCount?: number
-  studentsCount?: number
-  created_at?: string
-}
 
 export function buildModuleColumns(
-  onEdit: (m: ModuleRow) => void,
-  onDelete: (m: ModuleRow) => void
-): ColumnDef<ModuleRow>[] {
+  onEdit: (m: UIModule) => void,
+  onDelete: (m: UIModule) => void,
+  user?: { role?: string }
+): ColumnDef<UIModule>[] {
+  
+  
   return [
-    {
-      accessorKey: "code",
-      header: "Code",
-      cell: ({ row }) => <div className="font-medium">{row.original.code}</div>,
-      filterFn: "fuzzy",
-    },
     {
       accessorKey: "title",
       header: "Title",
       filterFn: "fuzzy",
+    },
+    {
+      accessorKey: "assessmentTitle",
+      header: "Assessment",
+      // Use the flattened field; if missing, fall back to the first assessment title if `assessment` is an array.
+      cell: ({ row, getValue }) => {
+        const flat = getValue() as string | undefined
+        if (flat && flat.trim()) return flat
+        const a = row.original.assessment as any
+        if (Array.isArray(a) && a.length) return a[0]?.title ?? "—"
+        if (a && typeof a === "object") return a.title ?? "—"
+        return "—"
+      },
     },
     { accessorKey: "credits", header: "Credits" },
     {
@@ -41,25 +40,16 @@ export function buildModuleColumns(
         </Badge>
       ),
     },
-    { accessorKey: "instructor", header: "Instructor", filterFn: "fuzzy" },
-    { accessorKey: "cohort", header: "Cohort" },
-    {
-      accessorKey: "assessmentsCount",
-      header: "Assessments",
-      cell: ({ row }) => row.original.assessmentsCount ?? 0,
-    },
-    {
-      accessorKey: "studentsCount",
-      header: "Students",
-      cell: ({ row }) => row.original.studentsCount ?? 0,
-    },
     {
       id: "actions",
       header: "Actions",
       enableSorting: false,
-      enableHiding: false,
+      enableHiding: true,
       cell: ({ row }) => {
         const m = row.original
+
+        if (user?.role !== "SuperAdmin") return null;
+
         return (
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={() => onEdit(m)}>Edit</Button>

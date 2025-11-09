@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Loader2, Plus, Trash2 } from "lucide-react"
+import useAuth from "@/hooks/useAuth"
 
 const scoreRowSchema = z.object({
   criterion_id: z.number().int().positive(),
@@ -36,6 +37,7 @@ type SheetValues = z.infer<typeof sheetSchema>
 export default function Evaluate() {
   // Queue state
   const [loadingQueue, setLoadingQueue] = React.useState(true)
+  const { user } = useAuth()
   const [rows, setRows] = React.useState<UIQueueItem[]>([])
   const [page, setPage] = React.useState(1)
   const [perPage] = React.useState(20)

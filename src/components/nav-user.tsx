@@ -113,14 +113,14 @@ export function NavUser() {
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuGroup>
+            {/* <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => navigate("/account")}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
 
             <DropdownMenuItem onClick={() => logout()}>
               <LogOut />

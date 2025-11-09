@@ -9,6 +9,7 @@ import {
   ClipboardList,
   CheckSquare,
   BarChart3,
+  School
 } from "lucide-react"
 
 import useAuth from "@/hooks/useAuth"
@@ -27,19 +28,20 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth()
   const { pathname } = useLocation()
 
-  // 'SuperAdmin' | 'CollegeAdmin' | 'Evaluator' | 'Student'
+  // Roles in the app
+  //   'SuperAdmin' | 'CollegeAdmin' | 'Evaluator' | 'Student'
   const role = user?.role as Role | undefined
 
-  // ---- FIX: ensure strict types for TeamSwitcher ----
-  const teams = React.useMemo(
-    () =>
-      [
-        {
-          name: (user?.tenant_name ?? "AssessPro") as string, // fallback so it's always string
-          logo: LayoutDashboard as React.ElementType,         // satisfy ElementType requirement
-          plan: (user as any)?.plan ?? "Basic",
-        },
-      ] as { name: string; logo: React.ElementType; plan: string }[],
+  const teams = React.useMemo<
+    { name: string; logo: React.ElementType; plan: string }[]
+  >(
+    () => [
+      {
+        name: user?.tenant_name ?? "AssessPro",     // force a string
+        logo: LayoutDashboard as React.ElementType, // satisfy ElementType
+        plan: "Basic",
+      },
+    ],
     [user]
   )
 
@@ -51,6 +53,14 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         url: "/",
         icon: LayoutDashboard,
         isActive: pathname === "/",
+        // no roles => visible to everyone
+      },
+      {
+        title: "Colleges",
+        url: "/colleges",
+        icon: School,
+        isActive: pathname.startsWith("/colleges"),
+        roles: ["SuperAdmin", "CollegeAdmin"],
       },
       {
         title: "Students",
@@ -60,18 +70,18 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
         roles: ["SuperAdmin", "CollegeAdmin"],
       },
       {
-        title: "Modules",
-        url: "/modules",
-        icon: BookOpen,
-        isActive: pathname.startsWith("/modules"),
-        roles: ["SuperAdmin", "CollegeAdmin", "Student"],
-      },
-      {
         title: "Assessments",
         url: "/assessments",
         icon: ClipboardList,
         isActive: pathname.startsWith("/assessments"),
         roles: ["SuperAdmin", "CollegeAdmin", "Evaluator", "Student"],
+      },
+      {
+        title: "Modules",
+        url: "/modules",
+        icon: BookOpen,
+        isActive: pathname.startsWith("/modules"),
+        roles: ["SuperAdmin", "CollegeAdmin"],
       },
       {
         title: "Evaluate",
@@ -91,18 +101,31 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     [pathname]
   )
 
-  // Loading/unauth handling + role filter
+  // If your auth store sets `user === undefined` while loading, show all (avoid flicker).
+  // If unauthenticated (user === null), only show items without `roles` (e.g., Dashboard).
   const filteredItems = React.useMemo(() => {
     const isLoadingUser = typeof user === "undefined"
 
-    if (isLoadingUser) return baseItems
+    if (isLoadingUser) {
+      // Show everything while role is not known yet (prevents "Dashboard-only" flash)
+      return baseItems
+    }
 
-    if (user === null) return baseItems.filter((i) => !i.roles || i.roles.length === 0)
+    if (user === null) {
+      // Not logged in -> only items with no `roles`
+      return baseItems.filter((i) => !i.roles || i.roles.length === 0)
+    }
 
-    if (!role) return baseItems
+    if (!role) {
+      // Logged in but role missing -> be permissive or restrictive.
+      // Here, we'll be permissive (same behavior as loading) to avoid hiding items by mistake.
+      return baseItems
+    }
 
+    // Normal case: filter by role
     return baseItems.filter((i) => !i.roles || i.roles.includes(role))
   }, [baseItems, user, role])
+
 
   return (
     <Sidebar collapsible="icon" {...props}>
