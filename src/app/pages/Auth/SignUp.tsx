@@ -174,11 +174,11 @@ export default function SignUp({ className }: { className?: string }) {
                       </SelectContent>
                     </Select>
 
-                    {form.university_id && (
+                    {/* {form.university_id && (
                       <FieldDescription>
                         Selected: {colleges.find((c) => c.id === form.university_id)?.name}
                       </FieldDescription>
-                    )}
+                    )} */}
                   </Field>
 
                 </FieldRow>
@@ -245,11 +245,11 @@ export default function SignUp({ className }: { className?: string }) {
                         />
                       </PopoverContent>
                     </Popover>
-                    {form.dob && (
+                    {/* {form.dob && (
                       <FieldDescription className="mt-1">
                         Selected: <span className="font-medium">{form.dob}</span>
                       </FieldDescription>
-                    )}
+                    )} */}
                   </Field>
                 </FieldRow>
 
