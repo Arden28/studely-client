@@ -14,6 +14,8 @@ import { Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 
 import auth, { type RegisterInitBody } from "@/api/auth"
+import collegeApi from "@/api/college"
+import type { UICollege } from "@/api/college"
 
 // If your shadcn version uses InputOTP:
 import {
@@ -33,11 +35,13 @@ export default function SignUp({ className }: { className?: string }) {
   const [step, setStep] = React.useState<Step>("details")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [colleges, setColleges] = React.useState<UICollege[]>([])
+  const [loadingColleges, setLoadingColleges] = React.useState(true)
 
   const [form, setForm] = React.useState<RegisterInitBody>({
     full_name: "",
     institution_name: "",
-    university_name: "",
+    university_id: null,
     mobile: "",
     email: "",
     gender: "",
@@ -60,6 +64,19 @@ export default function SignUp({ className }: { className?: string }) {
   function update<K extends keyof RegisterInitBody>(k: K, v: RegisterInitBody[K]) {
     setForm((s) => ({ ...s, [k]: v }))
   }
+
+  React.useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await collegeApi.listSignup({ per_page: 200 })
+        setColleges(res.data.rows)
+      } catch (e) {
+        console.error("Failed to load colleges", e)
+      } finally {
+        setLoadingColleges(false)
+      }
+    })()
+  }, [])
 
   async function handleNext(e: React.FormEvent) {
     e.preventDefault()
@@ -126,14 +143,44 @@ export default function SignUp({ className }: { className?: string }) {
                 </Field>
 
                 <FieldRow>
-                  <Field className="w-full">
+                  {/* <Field className="w-full">
                     <FieldLabel>Institution Name</FieldLabel>
                     <Input value={form.institution_name} onChange={(e) => update("institution_name", e.target.value)} placeholder="e.g., School of Computing and Informatics" required />
-                  </Field>
+                  </Field> */}
+
                   <Field className="w-full">
-                    <FieldLabel>University Name</FieldLabel>
-                    <Input value={form.university_name} onChange={(e) => update("university_name", e.target.value)} placeholder="e.g., Mount Kenya University" required />
+                    <FieldLabel>University</FieldLabel>
+
+                    <Select
+                      value={form.university_id ? String(form.university_id) : ""}
+                      onValueChange={(val) => update("university_id", Number(val))}
+                      disabled={loadingColleges}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingColleges ? "Loading..." : "Select university"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {colleges.length === 0 && (
+                          <SelectItem disabled value="0">
+                            No universities found
+                          </SelectItem>
+                        )}
+
+                        {colleges.map((c) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {form.university_id && (
+                      <FieldDescription>
+                        Selected: {colleges.find((c) => c.id === form.university_id)?.name}
+                      </FieldDescription>
+                    )}
                   </Field>
+
                 </FieldRow>
 
                 <FieldRow>

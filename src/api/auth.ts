@@ -60,7 +60,7 @@ type UploadAvatarResult = { url?: string }
 export type RegisterInitBody = {
   full_name: string
   institution_name: string
-  university_name: string
+  university_id: number | null
   mobile: string
   email: string
   gender: string

@@ -68,6 +68,30 @@ function normalizeListParams(params?: Record<string, unknown>) {
 
 /* -------------------------------- Client ---------------------------------- */
 
+async function listSignup(params?: {
+  search?: string
+  location?: string
+  page?: number
+  per_page?: number
+}) {
+  const qs = buildQuery(normalizeListParams(params))
+  const res = await api.get<PaginatedDto<CollegeDto>>(`/v1/colleges-list${qs}`)
+  return {
+    ...res,
+    data: {
+      rows: res.data.data.map(toUICollege),
+      meta:
+        res.data.meta ??
+        ({
+          current_page: 1,
+          last_page: 1,
+          per_page: res.data.data.length,
+          total: res.data.data.length,
+        } as NonNullable<PaginatedDto<CollegeDto>["meta"]>),
+    },
+  }
+}
+
 async function list(params?: {
   search?: string
   location?: string
@@ -119,6 +143,7 @@ async function remove(id: number) {
 }
 
 export default {
+  listSignup,
   list,
   create,
   update,
